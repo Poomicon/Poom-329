@@ -1,51 +1,44 @@
 const express = require('express');
 const cors = require('cors');
+const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
 
-
+dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
-
 
 // Middleware
-app.use(cors());  // อนุญาต cross-origin จาก frontend
+app.use(cors());
 app.use(express.json());
 
-
-// สร้างโฟลเดอร์ logs ถ้ายังไม่มี (สำหรับ volume demo)
+// Logging Setup (Ensure logs folder exists)
 const logsDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir);
+    fs.mkdirSync(logsDir);
 }
 
+// Access Log Middleware
+app.use((req, res, next) => {
+    const log = `${new Date().toISOString()} - ${req.method} ${req.url}\n`;
+    fs.appendFileSync(path.join(logsDir, 'access.log'), log);
+    next();
+});
 
-// Endpoint demo: Return Git + Docker info และ log request
+// API Route
 app.get('/api/demo', (req, res) => {
-  const logMessage = `Request at ${new Date().toISOString()}: ${req.ip}\n`;
-  fs.appendFileSync(path.join(logsDir, 'access.log'), logMessage);
-
-  res.json({
-    git: {
-      title: 'ชื่อ-นามสกุล',
-      detail: 'นายณัฐภูมิ หลู่จิ่ง'
-    },
-    docker: {
-      title: 'รหัสนักศึกษา',
-      detail: '6604101329'
-    }
-  });
+    res.json({
+        message: 'Hello from Backend',
+        info: 'This is a demo API for Git/Docker exam'
+    });
 });
 
-
-// Error handling
+// Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
 });
 
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
